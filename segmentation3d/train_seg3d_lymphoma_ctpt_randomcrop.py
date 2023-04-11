@@ -31,7 +31,7 @@ import numpy as np
 import torch.nn as nn
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import time
-from torchsummary import summary
+# from torchsummary import summary
 
 #%%
 def convert_to_4digits(str_num):
@@ -61,33 +61,49 @@ def create_dictionary_ptgt(ptpaths, gtpaths):
         gtpath = gtpaths[i]
         data.append({'PT':ptpath, 'GT':gtpath})
     return data
+
+def get_ctptgt_paths_from_df(df):
+    ctpaths, ptpaths, gtpaths = [],[],[]
+    autopet_datadir =  '/data/blobfuse/default/autopet2022_data'
+    images_dir = os.path.join(autopet_datadir, 'images')
+    labels_dir = os.path.join(autopet_datadir, 'labels')
+    
+    for index, row in df.iterrows():
+        patientid = row['PatientID']
+        ctpath = os.path.join(images_dir, f"{patientid}_0000.nii.gz")
+        ptpath = os.path.join(images_dir, f"{patientid}_0001.nii.gz")
+        gtpath = os.path.join(labels_dir, f"{patientid}.nii.gz")
+        ctpaths.append(ctpath)
+        ptpaths.append(ptpath)
+        gtpaths.append(gtpath)
+    return ctpaths, ptpaths, gtpaths
+
+def get_train_valid_paths_dictionary(df, fold):
+    valid_df = df[df['TRAIN/TEST'] == f'TRAIN_{str(fold)}']
+    train_df = df[(df['TRAIN/TEST'] != f'TRAIN_{str(fold)}') & (df['TRAIN/TEST'] != f'TEST')]
+
+    ctpaths_train, ptpaths_train, gtpaths_train = get_ctptgt_paths_from_df(train_df)
+    ctpaths_valid, ptpaths_valid, gtpaths_valid = get_ctptgt_paths_from_df(valid_df)
+    
+    train_data = train_data = create_dictionary_ctptgt(ctpaths_train, ptpaths_train, gtpaths_train)
+    valid_data = create_dictionary_ctptgt(ctpaths_valid, ptpaths_valid, gtpaths_valid)
+    return train_data, valid_data
+
 #%%
 fold = 0
 network = 'unet'
-trainrecipe = 'cag'
+disease = 'lymphoma'
 inputtype = 'ctpt'
 inputsize = 'randcrop192'
-extrafeature = 'nopmbclbccv'
-experiment_code = network+'_'+trainrecipe+'_'+'fold'+str(fold)+'_'+inputtype+'_'+inputsize+'_'+extrafeature
+# extrafeature = 'nopmbclbccv'
+experiment_code = f"{network}_{disease}_fold{str(fold)}_{inputtype}_{inputsize}"
 trsz = 192
 spatialsize = (trsz, trsz, trsz)
 swsz = 192
 #%%
-fold_fpaths_dir = 'data_preprocessing_tools/train_valid_test_splits_paths_nopmbclbccv/fold'+str(fold)
-
-train_fpaths_fname = os.path.join(fold_fpaths_dir, 'trainfiles_fold'+str(fold)+'.csv')
-valid_fpaths_fname = os.path.join(fold_fpaths_dir, 'validfiles_fold'+str(fold)+'.csv')
-
-train_fpaths_df = pd.read_csv(train_fpaths_fname)
-valid_fpaths_df = pd.read_csv(valid_fpaths_fname)
-
-ctpaths_train, ptpaths_train, gtpaths_train = list(train_fpaths_df['CTPATHS'].values), list(train_fpaths_df['PTPATHS'].values),  list(train_fpaths_df['GTPATHS'].values)
-ctpaths_valid, ptpaths_valid, gtpaths_valid = list(valid_fpaths_df['CTPATHS'].values), list(valid_fpaths_df['PTPATHS'].values),  list(valid_fpaths_df['GTPATHS'].values)
-
-# %%
-####################### creating dictionary for train and valid images #######################################
-train_data = create_dictionary_ctptgt(ctpaths_train, ptpaths_train, gtpaths_train)
-valid_data = create_dictionary_ctptgt(ctpaths_valid, ptpaths_valid, gtpaths_valid)
+metadata_path = f'/home/jhubadmin/Projects/autopet-oncology-generalizability/create_data_split/metadata_{disease}.csv'
+metadata_df = pd.read_csv(metadata_path)
+train_data, valid_data = get_train_valid_paths_dictionary(metadata_df, fold)
 
 #%%
 mod_keys = ['CT', 'PT', 'GT']
@@ -104,7 +120,7 @@ train_transforms = Compose(
             keys=mod_keys,
             label_key='GT',
             spatial_size = spatialsize,
-            pos=4,
+            pos=5,
             neg=1,
             num_samples=1,
             image_key='PT',
@@ -172,7 +188,7 @@ dice_metric = DiceMetric(include_background=False, reduction="mean")
 scheduler = CosineAnnealingLR(optimizer, T_max=1200, eta_min=0)
 
 #%%
-save_models_dir = '/data/blobfuse/saved_models_folds/segmentation3d/'
+save_models_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_models_folds/segmentation3d/'
 save_models_dir = os.path.join(save_models_dir, 'fold'+str(fold), network, experiment_code)
 os.makedirs(save_models_dir, exist_ok=True)
 #%%
@@ -187,7 +203,7 @@ post_label = Compose([AsDiscrete(to_onehot=2)])
 
 train_metric_values = []
 
-save_logs_dir = '/data/blobfuse/saved_logs_folds/segmentation3d/'
+save_logs_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_logs_folds/segmentation3d/'
 save_logs_dir = os.path.join(save_logs_dir, 'fold'+str(fold), network, experiment_code)
 os.makedirs(save_logs_dir, exist_ok=True)
 
