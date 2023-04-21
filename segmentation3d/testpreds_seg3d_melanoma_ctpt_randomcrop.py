@@ -102,7 +102,7 @@ def find_epochmodel_swsize_for_this_experiment_code(ablation_dir):
         
 
 #%%
-fold = 0
+fold = 3
 network = 'unet'
 disease = 'melanoma'
 inputtype = 'ctpt'
@@ -313,6 +313,8 @@ mean_hd = round(np.nanmean(test_hds), 4)
 std_hd = round(np.nanstd(test_hds), 4)
 #%%
 print(f"Test set performance summary: {inputsize}")
+print(f'Train disease: {disease}')
+print(f'Test disease: {testing_on_disease}')
 print(f"DSC: {mean_dsc} +/- {std_dsc}")
 print(f"Median DSC: {median_dsc}")
 print(f"Jaccard Index: {mean_jaccard} +/- {std_jaccard}")
