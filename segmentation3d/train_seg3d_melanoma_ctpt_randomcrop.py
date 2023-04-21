@@ -90,7 +90,7 @@ def get_train_valid_paths_dictionary(df, fold):
     return train_data, valid_data
 
 #%%
-fold = 0
+fold = 3
 network = 'unet'
 disease = 'melanoma'
 inputtype = 'ctpt'

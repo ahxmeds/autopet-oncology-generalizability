@@ -50,7 +50,7 @@ def plot_training_validation_metrics_given_expcode(save_logs_dir):
 
 
 #%%
-fold = 0
+fold = 4
 network = 'unet'
 disease = 'lymphoma'
 inputtype = 'ctpt'
@@ -66,7 +66,7 @@ print('Lymphoma')
 plot_training_validation_metrics_given_expcode(save_logs_dir)
 # %%
 
-fold = 0
+fold = 4
 network = 'unet'
 disease = 'lungcancer'
 inputtype = 'ctpt'
@@ -77,6 +77,21 @@ experiment_code = f"{network}_{disease}_fold{str(fold)}_{inputtype}_{inputsize}"
 save_logs_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_logs_folds/segmentation3d'
 save_logs_dir = os.path.join(save_logs_dir, 'fold'+str(fold), network, experiment_code)
 # save_logs_dir = '/fold0/unet/unet_lymphoma_fold0_ctpt_randcrop192'
-print('Lymphoma')
+print('LungCancer')
+plot_training_validation_metrics_given_expcode(save_logs_dir)
+# %%
+
+fold = 4
+network = 'unet'
+disease = 'melanoma'
+inputtype = 'ctpt'
+inputsize = 'randcrop192'
+# extra_features = ''# '_no3delasticaugmentation'
+# sizes = [96, 128, 160, 192, 224, 256, 288]
+experiment_code = f"{network}_{disease}_fold{str(fold)}_{inputtype}_{inputsize}"
+save_logs_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_logs_folds/segmentation3d'
+save_logs_dir = os.path.join(save_logs_dir, 'fold'+str(fold), network, experiment_code)
+# save_logs_dir = '/fold0/unet/unet_lymphoma_fold0_ctpt_randcrop192'
+print('Melanoma')
 plot_training_validation_metrics_given_expcode(save_logs_dir)
 # %%
