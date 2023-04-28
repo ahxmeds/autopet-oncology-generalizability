@@ -41,7 +41,7 @@ from monai.transforms import (
 print_config()
 # %%
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-device = torch.device("cuda:0")
+device = torch.device("cpu")
 
 #%%
 def convert_to_4digits(str_num):
@@ -82,9 +82,10 @@ def get_all_CVmodels(save_logs_dir, save_models_dir, train_on_disease='lymphoma'
     best_model_fname = ['model_ep=' + convert_to_4digits(str(epoch)) +'.pth' for epoch in epoch_max_valid_dsc]
     
     save_models_path = [os.path.join(save_models_dir, 'fold'+str(fold[i]), network, experiment_code[i], best_model_fname[i]) for i in range(len(best_model_fname))]
-    models = [get_base_model(torch.device('cuda:0')) for _ in range(5)]
+    models = [get_base_model(torch.device('cpu')) for _ in range(5)]
     for i in range(5):
         models[i].load_state_dict(torch.load(save_models_path[i]))
+    models = [models[i].module for i in range(len(models))]
     return models, max_valid_dsc
 
 def create_ctpaths_ptpaths_gtpaths(patientIDs, images_dir, labels_dir):
@@ -114,9 +115,9 @@ def create_dictionary_ctptgt(ctpaths, ptpaths, gtpaths):
 #%%
 save_logs_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_logs_folds/segmentation3d'
 save_models_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_models_folds/segmentation3d'
-train_on_disease = 'lungcancer'
-test_on_disease = 'lungcancer'
-ensemble_type = 'vote' # weighted by Validation score on different folds
+train_on_disease = 'melanoma'
+test_on_disease = 'melanoma'
+ensemble_type = 'avg' # weighted by Validation score on different folds
 
 network = 'unet'
 inputtype = 'ctpt'
@@ -159,6 +160,8 @@ dataset_test = Dataset(data=test_data, transform=test_transforms)#, cache_rate=0
 dataloader_test = DataLoader(dataset_test, batch_size=1, shuffle=False, num_workers=24)
 
 # %%
+import time 
+s = time.time()
 def ensemble_evaluate(post_transforms, models):
     evaluator = EnsembleEvaluator(
         device=device,
@@ -236,7 +239,7 @@ elif ensemble_type == 'vote':
     post_transforms = vote_post_transforms
 
 ensemble_evaluate(post_transforms, models)
-
+print(f"{(time.time() - s)/60} min")
 
 # %%
 def read_image_array(path):
