@@ -47,11 +47,18 @@ def plot_boxplots_for_specific_train_on_disease_for_all_test_on_disease(logs_fpa
     df_concat = pd.concat(dfs_for_concat, axis=0)
     
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax = sns.boxplot(data = df_concat, x='TestDisease', y='DSC', hue='FoldEnsemble', ax=ax, width=0.5, whis=0.8).set(
-        xlabel='TestDisease',
-        ylabel='Dice Score'
-    )
+    ax.set_ylim([0,1])
+    sns.set_style("whitegrid")
+    boxplot = sns.boxplot(data = df_concat, x='TestDisease', y='DSC', hue='FoldEnsemble', ax=ax, width=0.7, whis=1, showfliers=True)
+    start, end = ax.get_ylim()
+    ax.yaxis.set_ticks(np.arange(start, end, 0.1))
 
+    ax.set_ylim([-0.1,1])
+    sns.move_legend(ax, loc='lower center', bbox_to_anchor=(0.5, -0.29), ncol=7)
+    ax.set_xlabel('Test Disease', fontsize=13)
+    ax.set_ylabel('Dice Score', fontsize=13)
+    ax.set_title(f'{train_on_disease_value}-UNet', fontsize=14)
+    fig.savefig(f'{train_on_disease_value}-unet.png', bbox_inches='tight')
     return dfs_new
 
 
@@ -75,8 +82,13 @@ logs_fpaths_ensembles = [[os.path.join(dir_ensembles[i], test_on_disease[j], 'te
 _ = [logs_fpaths[i].extend(logs_fpaths_ensembles[i]) for i in range(len(logs_fpaths))]
 
 # %%
-
-dfs = plot_boxplots_for_specific_train_on_disease_for_all_test_on_disease(logs_fpaths, 'Lymphoma')
+if train_on_disease == 'lymphoma':
+    train_on_disease_value = 'Lymphoma'
+elif train_on_disease == 'lungcancer':
+    train_on_disease_value = 'LungCancer'
+else:
+    train_on_disease_value = 'Melanoma' 
+dfs = plot_boxplots_for_specific_train_on_disease_for_all_test_on_disease(logs_fpaths, train_on_disease_value)
 
 
 # %%
