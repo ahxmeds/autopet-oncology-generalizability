@@ -271,7 +271,7 @@ for epoch in range(max_epochs):
             metric_values_df = pd.DataFrame(data=metric_values, columns=['Metric'])
             metric_values_df.to_csv(validlog_fpath, index=False)
 
-            torch.save(model.state_dict(), os.path.join(save_models_dir, "model_ep="+convert_to_4digits(str(int(epoch+1)))+".pth"))
+            torch.save(model.module.state_dict(), os.path.join(save_models_dir, "model_ep="+convert_to_4digits(str(int(epoch+1)))+".pth"))
 
             if metric > best_metric:
                 best_metric = metric
