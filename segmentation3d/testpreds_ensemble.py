@@ -64,10 +64,11 @@ def get_base_model(device):
         num_res_units=2,
         norm=Norm.BATCH,
     ).to(device)
-    model = nn.DataParallel(model, device_ids=[0, 1, 2, 3])
+    # model = nn.DataParallel(model, device_ids=[0, 1, 2, 3])
     return model
 #%%
 def get_all_CVmodels(save_logs_dir, save_models_dir, train_on_disease='lymphoma'):
+    device = torch.device('cpu')
     models = []
     fold = [0, 1, 2, 3, 4]
     network = 'unet'
@@ -82,9 +83,9 @@ def get_all_CVmodels(save_logs_dir, save_models_dir, train_on_disease='lymphoma'
     best_model_fname = ['model_ep=' + convert_to_4digits(str(epoch)) +'.pth' for epoch in epoch_max_valid_dsc]
     
     save_models_path = [os.path.join(save_models_dir, 'fold'+str(fold[i]), network, experiment_code[i], best_model_fname[i]) for i in range(len(best_model_fname))]
-    models = [get_base_model(torch.device('cpu')) for _ in range(5)]
+    models = [get_base_model(device) for _ in range(5)]
     for i in range(5):
-        models[i].load_state_dict(torch.load(save_models_path[i]))
+        models[i].load_state_dict(torch.load(save_models_path[i], map_location=device))
     models = [models[i].module for i in range(len(models))]
     return models, max_valid_dsc
 
@@ -115,9 +116,9 @@ def create_dictionary_ctptgt(ctpaths, ptpaths, gtpaths):
 #%%
 save_logs_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_logs_folds/segmentation3d'
 save_models_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_models_folds/segmentation3d'
-train_on_disease = 'melanoma'
-test_on_disease = 'melanoma'
-ensemble_type = 'avg' # weighted by Validation score on different folds
+train_on_disease = 'lymphoma'
+test_on_disease = 'lymphoma'
+ensemble_type = 'vote' 
 
 network = 'unet'
 inputtype = 'ctpt'
@@ -156,8 +157,8 @@ test_transforms = Compose(
     ]
 )
 
-dataset_test = Dataset(data=test_data, transform=test_transforms)#, cache_rate=0, num_workers=24)
-dataloader_test = DataLoader(dataset_test, batch_size=1, shuffle=False, num_workers=24)
+dataset_test = Dataset(data=test_data, transform=test_transforms)#, cache_rate=0.5, num_workers=96)
+dataloader_test = DataLoader(dataset_test, batch_size=1, shuffle=False, num_workers=96)
 
 # %%
 import time 
@@ -216,7 +217,7 @@ vote_post_transforms = Compose(
         EnsureTyped(keys=["pred0", "pred1", "pred2", "pred3", "pred4"]),
         Activationsd(keys=["pred0", "pred1", "pred2", "pred3", "pred4"], sigmoid=True),
         # transform data into discrete before voting
-        AsDiscreted(keys=["pred0", "pred1", "pred2", "pred3", "pred4"], argmax=True, threshold=0.5),
+        AsDiscreted(keys=["pred0", "pred1", "pred2", "pred3", "pred4"], threshold=0.5),
         VoteEnsembled(keys=["pred0", "pred1", "pred2", "pred3", "pred4"], output_key="pred"),
         Invertd(
         keys=["pred","label"],
@@ -239,7 +240,7 @@ elif ensemble_type == 'vote':
     post_transforms = vote_post_transforms
 
 ensemble_evaluate(post_transforms, models)
-print(f"{(time.time() - s)/60} min")
+
 
 # %%
 def read_image_array(path):
@@ -336,6 +337,26 @@ print(f"DSC: {mean_dsc} +/- {std_dsc}")
 print(f"Median DSC: {median_dsc}")
 print(f"Jaccard Index: {mean_jaccard} +/- {std_jaccard}")
 print(f"95% HD: {mean_hd} +/- {std_hd}")
+print(f"Time taken: {(time.time() - s)/60} min")
 
+# %%
+# dir = '/data/blobfuse/default/autopet_generalizability_results/saved_testpreds_folds/segmentation3d/vote/unet/unet_lymphoma_vote_ctpt_randcrop192/test_lymphoma'
+# gtpaths_new = sorted(gtpaths_test[0:2])
+# predpaths = sorted(glob.glob(os.path.join(dir, '*.nii.gz')))
+# import matplotlib.pyplot as plt 
+# for i in range(len(gtpaths_new)):
+#     gtpath = gtpaths_new[i]
+#     predpath = predpaths[i]
+
+#     gtarray = read_image_array(gtpath)
+#     predarray = read_image_array(predpath)
+
+#     gtarray_cor = np.max(gtarray, axis=1)
+#     predarray_cor = np.max(predarray, axis=1)
+
+#     fig, ax = plt.subplots(1,2, figsize=(10,5))
+#     ax[0].imshow(gtarray_cor, cmap='Greys')
+#     ax[1].imshow(predarray_cor, cmap='Greys')
+#     plt.show()
 
 # %%
