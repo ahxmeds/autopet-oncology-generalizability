@@ -1,4 +1,4 @@
-# Towards a Segment Anything Model (SAM) for lesion segmentation in oncological PET/CT images
+# Towards a *Segment Anything Model* (SAM) for lesion segmentation in oncological PET/CT images
 (This repository is still under construction and the README.md file will be updated)
 ## Table of contents
 - [Introduction](#introduction)
