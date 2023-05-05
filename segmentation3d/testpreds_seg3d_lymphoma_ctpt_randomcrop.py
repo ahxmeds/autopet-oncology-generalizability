@@ -110,7 +110,7 @@ inputsize = 'randcrop192'
 # extrafeatures = '_nopmbclbccv'
 experiment_code =f"{network}_{disease}_fold{str(fold)}_{inputtype}_{inputsize}"
 
-testing_on_disease = 'melanoma'
+testing_on_disease = 'lymphoma'
 
 save_logs_dir = '/data/blobfuse/default/autopet_generalizability_results/saved_logs_folds/segmentation3d'
 validdscfname = os.path.join(save_logs_dir, 'fold'+str(fold), network, experiment_code, 'validdice.csv')
@@ -153,9 +153,13 @@ diagnosis_df = pd.read_csv(autopet_diagnosis_csvfpath)
 diagnosis_df_test = diagnosis_df[diagnosis_df['TRAIN/TEST'] == 'TEST']
 patientIDs = list(diagnosis_df_test['PatientID'])
 ctpaths_test, ptpaths_test, gtpaths_test = create_ctpaths_ptpaths_gtpaths(patientIDs, autopet_images_dir, autopet_labels_dir)
+ctpaths_test = sorted(ctpaths_test)
+ptpaths_test = sorted(ptpaths_test)
+gtpaths_test = sorted(gtpaths_test)
+
 # %%
 ####################### creating dictionary for train and valid images #######################################
-test_data = create_dictionary_ctptgt(ctpaths_test, ptpaths_test, gtpaths_test)
+test_data = create_dictionary_ctptgt(ctpaths_test[0:5], ptpaths_test[0:5], gtpaths_test[0:5])
 
 mod_keys = ['CT', 'PT', 'GT']
 test_transforms = Compose(
