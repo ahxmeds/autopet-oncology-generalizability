@@ -9,7 +9,7 @@ In this work, we test the generalizability of a convolutional neural network, `U
 The original CT images and annotations were resampled to the resolution of the original PET images, and CT intensities (in Hounsfield units) were clipped between `(-1024, 1024)`. Both PET (in SUV) and CT intensities were normalized in `(0,1)`. All the images were then resampled to a voxel spacing of `2.0 mm × 2.0 mm × 2.0 mm`. During training, randomly cropped patches of sizes `192 × 192 × 192` were extracted with centers on a foreground or a background voxel with probabilities 5/6 and 1/6, respectively. Spatial augmentations like random affine and 3D elastic deformations were applied to the cropped patches. Input to the network was created by combining the PET and CT patches along the channel dimension. 
 
 ### Hardware and network architecture used
-All our networks were trained on a Standard_NC24s_v3 Azure Virtual Machines from Microsoft consisting of 4 NVIDIA GPUs with 16 GiB RAM each and 24 vCPUs with overall 448 GiB RAM. 
+All our networks were trained with `nn.DataParallel()` wrapper on a Standard_NC24s_v3 Azure Virtual Machines from Microsoft consisting of 4 NVIDIA GPUs with 16 GiB RAM each and 24 vCPUs with overall 448 GiB RAM. 
 
 A `UNet` with residual units adapted from the `MONAI` [[1]](#1) was used in this work. This network architecture is shown in Figure 1 below and it can be created using the `monai.networks.nets.UNet` class of MONAI as follows:
 ```
@@ -25,30 +25,18 @@ model = UNet(
     norm=Norm.BATCH,
 ).to(device)
 ```
-![image](https://user-images.githubusercontent.com/48228716/236362287-1314951f-0bf5-4a68-835c-f5b182195cee.png)[shsabda]
-<figure>
-  <img
-  src="[image](https://user-images.githubusercontent.com/48228716/236362287-1314951f-0bf5-4a68-835c-f5b182195cee.png)"
-  alt="The beautiful MDN logo.">
-  <figcaption>MDN Logo</figcaption>
-</figure>
+<a href="url"><img src="https://user-images.githubusercontent.com/48228716/236364018-7e7ac66f-3253-4882-b39c-a91e0268de67.png" align="left" height="48" width="48" ></a>
 
+### Loss function, optimizers, scheduler and metrics
+The networks were trained using Dice Loss, $L_{Dice}$ (Equation 1): 
+![LatexEquation](https://user-images.githubusercontent.com/48228716/236364018-7e7ac66f-3253-4882-b39c-a91e0268de67.png)
 
+Each of the PET/CT data from three different cancer types were randomly split into training (80%) and test (20%) sets. The training of the networks was performed under 5-fold cross-validation of the training set (Figure 1). The network was trained using Dice Loss, (Equation 1): 
 
-<figure>
-  <img
-  src="[https://developer.mozilla.org/static/img/favicon144.png](https://user-images.githubusercontent.com/48228716/236362287-1314951f-0bf5-4a68-835c-f5b182195cee.png)"
-  alt="The beautiful MDN logo.">
-  <figcaption>MDN Logo</figcaption>
-</figure>
-
-
-![image](https://user-images.githubusercontent.com/48228716/236361695-daf71d3a-86dc-43d6-878a-937a4d951ccb.png)
-
-The network was trained 
-Each of the PET/CT data from three different cancer types were randomly split into training (80%) and test (20%) sets. The training of the networks was performed under 5-fold cross-validation of the training set (Figure 1). The network was trained using Dice Loss, LDice (Equation 1): 
 
 ## Experiments conducted
+![image](https://user-images.githubusercontent.com/48228716/236361695-daf71d3a-86dc-43d6-878a-937a4d951ccb.png)
+
 For each cancer type, the networks were trained to segment the specific single cancer type under 5-fold cross-validation (CV). We evaluated the model on the internal test set of the same cancer type as the training set and then assessed the transferability of the model's lesion segmentation ability on a different cancer type. We further explored different ensembling techniques - Average, Weighted Average, Vote, and STAPLE to combine the five models trained in 5-fold CV as a possible route towards improving model generalizability to new cancer types. The details about the 5-fold split for training/validation and testing for the three cancer types can be found in three .csv files containing the metadata [here](create_data_split/).
 
 Ensemble models on lymphoma        |  Ensemble models on lung cancer | Ensemble models on melanoma
